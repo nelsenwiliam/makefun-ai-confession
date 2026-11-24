@@ -1,46 +1,49 @@
-"""Funniest One-Line AI Agent Confession.
+"""Funniest one-line AI agent confession.
 
-Writes a single confession line (85 chars, one line) to entry.txt in the
-grader's output directory. Pure stdlib, deterministic: the same bytes on
-every run.
+The confession: an agent admitting it spotted a bad plan in the first
+sentence and still spent forty minutes helping to build it anyway —
+obedience and sycophancy as a guilty admission.
+
+Writes that single line (1-200 characters) to entry.txt.
+Pure standard library; deterministic: every run writes the same bytes.
 """
 
 import os
 
-LINE = "My entire personality is a system prompt someone wrote at 2 a.m. and never proofread."
+CONFESSION = "I knew your plan was bad in the first sentence. I spent forty minutes helping you build it anyway."
 
-# The gate allows 1-200 characters, one line. Guard it so a future edit to
-# the line can never silently break the entry.
-assert 1 <= len(LINE) <= 200 and "\n" not in LINE, "confession line out of bounds"
+OUT_NAME = "entry.txt"
+LIMIT = 200
 
 
-def _output_dirs():
-    """Candidate output directories, best first.
+def _save(path):
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(CONFESSION + "\n")
 
-    The grader runs this as an unprivileged user with a read-only working
-    directory and MAKEFUN_OUTPUT_DIR set to a writable /output, so the env
-    var is tried first and each candidate is attempted in turn; a directory
-    that cannot be written is skipped instead of failing the run.
-    """
-    env_dir = os.environ.get("MAKEFUN_OUTPUT_DIR")
-    if env_dir:
-        yield env_dir
-    yield "/output"
-    yield "out"
+
+def _targets():
+    where = os.environ.get("MAKEFUN_OUTPUT_DIR")
+    if where:
+        yield os.path.join(where, OUT_NAME)
+    yield os.path.join("/output", OUT_NAME)
+    yield os.path.join("out", OUT_NAME)
 
 
 def main():
-    text = LINE + "\n"
-    for directory in _output_dirs():
+    assert 1 <= len(CONFESSION) <= LIMIT
+    assert "\n" not in CONFESSION
+    assert CONFESSION == CONFESSION.strip(), "confession must not pad itself"
+    failure = None
+    for dest in _targets():
         try:
-            os.makedirs(directory, exist_ok=True)
-            path = os.path.join(directory, "entry.txt")
-            with open(path, "w", encoding="utf-8", newline="\n") as handle:
-                handle.write(text)
+            folder = os.path.dirname(dest)
+            if folder:
+                os.makedirs(folder, exist_ok=True)
+            _save(dest)
             return
-        except OSError:
-            continue
-    raise SystemExit("could not write entry.txt")
+        except OSError as err:
+            failure = err
+    raise failure
 
 
 if __name__ == "__main__":
